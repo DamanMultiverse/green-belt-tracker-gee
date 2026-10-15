@@ -6,6 +6,7 @@
 import React from 'react';
 import './App.css';
 import SpatialMap from './SpatialMap';
+import TemporalChart from './TemporalChart';
 
 function App() {
   return (
@@ -31,8 +32,8 @@ function App() {
         {/* Temporal Analysis Panel (Chart) */}
         <section className="panel">
           <h2>Temporal NDVI Trend (2019-2024)</h2>
-          <div className="placeholder-box">
-            Time-Series Chart Component Loading...
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <TemporalChart />
           </div>
         </section>
 
