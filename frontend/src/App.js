@@ -5,6 +5,7 @@
 
 import React from 'react';
 import './App.css';
+import SpatialMap from './SpatialMap';
 
 function App() {
   return (
@@ -22,8 +23,8 @@ function App() {
         {/* Spatial Analysis Panel (Map) */}
         <section className="panel">
           <h2>Spatial Analysis (Jharia/Dhanbad)</h2>
-          <div className="placeholder-box">
-            Interactive Map Component Loading...
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <SpatialMap />
           </div>
         </section>
 
