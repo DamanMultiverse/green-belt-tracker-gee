@@ -1,42 +1,65 @@
+// ==============================================================================
+// TEMPORAL NDVI CHART COMPONENT
+// Description: Renders multi-year NDVI progression and reclamation threshold line
+// ==============================================================================
+
 import React from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ReferenceLine,
+  ResponsiveContainer
+} from 'recharts';
 
-// Mock data representing the NDVI trend from 2019 to 2024
-const data = [
-  { year: '2019', ndvi: 0.22 },
-  { year: '2020', ndvi: 0.28 },
-  { year: '2021', ndvi: 0.35 },
-  { year: '2022', ndvi: 0.41 },
-  { year: '2023', ndvi: 0.48 },
-  { year: '2024', ndvi: 0.52 },
-];
-
-const TemporalChart = () => {
+const TemporalChart = ({ chartData }) => {
   return (
-    <div style={{ width: '100%', height: '100%', minHeight: '350px' }}>
+    <div style={{ width: '100%', height: '100%', minHeight: '360px' }}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
-          data={data}
-          margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+          data={chartData}
+          margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
         >
-          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="year" tick={{ fill: '#7f8c8d' }} />
-          <YAxis 
-            domain={[0, 0.6]} 
-            tick={{ fill: '#7f8c8d' }} 
-            label={{ value: 'Average NDVI', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#2c3e50' } }} 
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+          <XAxis dataKey="year" tick={{ fill: '#475569', fontSize: 12 }} />
+          <YAxis
+            domain={[0, 0.7]}
+            tick={{ fill: '#475569', fontSize: 12 }}
+            label={{
+              value: 'Mean NDVI Index',
+              angle: -90,
+              position: 'insideLeft',
+              style: { textAnchor: 'middle', fill: '#1e293b', fontWeight: 600 }
+            }}
           />
-          <Tooltip 
-            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} 
+          <Tooltip
+            contentStyle={{
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 4px 10px rgba(0,0,0,0.08)'
+            }}
           />
-          <Legend wrapperStyle={{ paddingTop: '20px' }} />
-          <Line 
-            type="monotone" 
-            dataKey="ndvi" 
-            stroke="#006400" 
-            strokeWidth={3} 
-            name="NDVI Trend (Greenness)" 
-            activeDot={{ r: 8, fill: '#2ca02c' }} 
+          <Legend wrapperStyle={{ paddingTop: '15px' }} />
+
+          {/* Statutory threshold reference line for healthy vegetation */}
+          <ReferenceLine
+            y={0.35}
+            label={{ value: 'Target Green Belt Threshold (0.35)', position: 'top', fill: '#ca8a04', fontSize: 11 }}
+            stroke="#eab308"
+            strokeDasharray="4 4"
+          />
+
+          <Line
+            type="monotone"
+            dataKey="ndvi"
+            stroke="#15803d"
+            strokeWidth={3}
+            name="Observed NDVI (Green Cover)"
+            activeDot={{ r: 7, fill: '#22c55e' }}
           />
         </LineChart>
       </ResponsiveContainer>
