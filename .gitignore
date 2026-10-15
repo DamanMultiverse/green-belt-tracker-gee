@@ -19,3 +19,4 @@ dist/
 build/
 logs/
 *.log
+gee-key.json
