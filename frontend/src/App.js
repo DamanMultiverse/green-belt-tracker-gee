@@ -1,22 +1,17 @@
-import logo from './logo.svg';
+import React from 'react';
 import './App.css';
 
 function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
+        <h1>Satellite-Based Green Belt Tracker</h1>
         <p>
-          Edit <code>src/App.js</code> and save to reload.
+          Spatio-temporal environmental monitoring interface.
         </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+        <p style={{ fontSize: '14px', color: '#888' }}>
+          Status: Frontend initialization complete. Awaiting API integration.
+        </p>
       </header>
     </div>
   );
