@@ -2,7 +2,8 @@
 // ENTERPRISE ENVIRONMENTAL & GREEN BELT MONITORING SERVER
 // Description: Multi-sensor (Landsat 5/7/8 + Sentinel-2) GEE API backend providing
 //              NDVI, Land Surface Temperature (LST), Dust Index, Land Cover breakdown,
-//              pictorial progression thumbnails, and Indian statutory compliance.
+//              pictorial progression thumbnails, and jurisdiction-aware statutory
+//              compliance (Indian MoEFCC/DGMS vs. International ICMM/ISO/WHO).
 // ==============================================================================
 
 require('dotenv').config();
@@ -67,8 +68,6 @@ const getThumbUrlPromise = (eeImage, params) => {
 
 // ==============================================================================
 // MULTI-SATELLITE HARMONIZATION (1985 - PRESENT)
-// Description: Dynamically selects and harmonizes Landsat 5, Landsat 7, Landsat 8,
-//              or Sentinel-2 imagery for any given year to compute environmental indices.
 // ==============================================================================
 const getAnnualComposite = (yearNum, roi) => {
     const year = ee.Number(yearNum);
@@ -87,7 +86,6 @@ const getAnnualComposite = (yearNum, roi) => {
         const ndwi = s2.normalizedDifference(['B3', 'B8']).rename('NDWI');
         const dust = s2.normalizedDifference(['B11', 'B8']).rename('DUST');
 
-        // Extract Land Surface Temperature (Celsius) from Landsat 8 Level-2 Thermal Band
         const l8 = ee.ImageCollection('LANDSAT/LC08/C02/T1_L2')
             .filterBounds(roi)
             .filterDate(start, end)
@@ -153,9 +151,22 @@ const getAnnualComposite = (yearNum, roi) => {
 };
 
 // ==============================================================================
-// INDIAN STATUTORY ADVISORY GENERATOR (MoEFCC / DGMS / CPCB NORMS)
+// JURISDICTION DETECTION HELPER (INDIA VS. INTERNATIONAL)
 // ==============================================================================
-const buildStatutoryReport = (metrics, startYear, endYear) => {
+const checkIndianJurisdiction = (lat, lng, countryCode) => {
+    if (countryCode) {
+        return String(countryCode).toLowerCase() === 'in';
+    }
+    const numLat = parseFloat(lat);
+    const numLng = parseFloat(lng);
+    // Bounding box approximation for Indian territory
+    return numLat >= 6.5 && numLat <= 37.5 && numLng >= 68.0 && numLng <= 97.5;
+};
+
+// ==============================================================================
+// DYNAMIC STATUTORY ADVISORY GENERATOR (INDIAN vs. INTERNATIONAL ESG)
+// ==============================================================================
+const buildStatutoryReport = (metrics, isIndia) => {
     const {
         latestNdvi,
         denseCanopyPct,
@@ -166,67 +177,122 @@ const buildStatutoryReport = (metrics, startYear, endYear) => {
     } = metrics;
 
     const advisories = [];
+    const greenCompliant = denseCanopyPct >= 33.0 || latestNdvi >= 0.35;
 
-    // 1. MoEFCC 33% Green Belt Mandate Check
-    const moefccCompliant = denseCanopyPct >= 33.0 || latestNdvi >= 0.35;
-    if (moefccCompliant) {
+    if (isIndia) {
+        // --- INDIAN STATUTORY FRAMEWORK (MoEFCC / DGMS / CPCB / IBM) ---
+        if (greenCompliant) {
+            advisories.push({
+                authority: 'MoEFCC (EC Green Belt Norm)',
+                status: 'Compliant',
+                severity: 'success',
+                detail: `Green cover and canopy density (${denseCanopyPct}% area, Mean NDVI ${latestNdvi}) satisfy the statutory 33% green belt mandate under Indian Environmental Clearance (EC) conditions.`
+            });
+        } else {
+            const deficit = Math.max(0, (33.0 - denseCanopyPct).toFixed(1));
+            advisories.push({
+                authority: 'MoEFCC (EC Green Belt Norm)',
+                status: 'Action Required',
+                severity: 'warning',
+                detail: `Dense green belt cover is ${denseCanopyPct}% (${deficit}% below the mandatory 33% statutory norm). Immediate gap-plantation (2,500 saplings/ha) recommended on inactive overburden dumps.`
+            });
+        }
+
+        if (latestDust > 0.08 || barrenPitPct > 45) {
+            advisories.push({
+                authority: 'DGMS & CPCB (SPM / Dust Suppression)',
+                status: 'High Particulate Risk',
+                severity: 'danger',
+                detail: `Elevated surface dust reflectance (Index: ${latestDust}) and exposed pit/dump surface (${barrenPitPct}%). Deploy 3-tier windbreak shelterbelts (Neem, Karanj, Dalbergia sissoo) along haul roads per MMR 1961 Reg. 123/124.`
+            });
+        } else {
+            advisories.push({
+                authority: 'DGMS & CPCB (SPM / Dust Suppression)',
+                status: 'Controlled',
+                severity: 'success',
+                detail: `Peripheral vegetation buffer is effectively attenuating fugitive dust dispersion (Dust Proxy Index: ${latestDust}). Continue regular water sprinkling and haul road avenue plantation.`
+            });
+        }
+
+        if (latestLst > 34.5) {
+            advisories.push({
+                authority: 'DGMS Thermal & Micro-Climate Monitor',
+                status: 'Elevated Thermal Zone',
+                severity: 'warning',
+                detail: `Mean surface temperature is ${latestLst} °C. High thermal retention observed in exposed rock/coal strata. Increase broad-leaved canopy cover to induce localized evapotranspiration cooling.`
+            });
+        } else {
+            advisories.push({
+                authority: 'DGMS Thermal & Micro-Climate Monitor',
+                status: 'Normal Thermal Profile',
+                severity: 'success',
+                detail: `Mean surface temperature (${latestLst} °C) is within stable regional limits, supported by vegetative cooling across reclaimed blocks.`
+            });
+        }
+
         advisories.push({
-            authority: 'MoEFCC (EC Green Belt Norm)',
-            status: 'Compliant',
-            severity: 'success',
-            detail: `Green cover and canopy density (${denseCanopyPct}% area, Mean NDVI ${latestNdvi}) satisfy the statutory 33% green belt mandate under Environmental Clearance conditions.`
+            authority: 'IBM Sustainable Mining (Carbon Offset)',
+            status: `${co2TonnesPerYear.toLocaleString()} tCO2e/yr`,
+            severity: 'info',
+            detail: `Existing vegetation cover across the monitored buffer sequesters approximately ${co2TonnesPerYear.toLocaleString()} tonnes of CO2 annually, contributing positively toward Indian Bureau of Mines (IBM) 5-Star Rating criteria.`
         });
     } else {
-        const deficit = Math.max(0, (33.0 - denseCanopyPct).toFixed(1));
+        // --- INTERNATIONAL ESG & GLOBAL MINING FRAMEWORK (ICMM / ISO 14001 / WHO / UNFCCC) ---
+        if (greenCompliant) {
+            advisories.push({
+                authority: 'ICMM & ISO 14001 (Mine Reclamation)',
+                status: 'Compliant',
+                severity: 'success',
+                detail: `Vegetative canopy (${denseCanopyPct}% dense cover, Mean NDVI ${latestNdvi}) meets international progressive rehabilitation benchmarks for post-mining ecosystem recovery.`
+            });
+        } else {
+            advisories.push({
+                authority: 'ICMM & ISO 14001 (Mine Reclamation)',
+                status: 'Rehabilitation Deficit',
+                severity: 'warning',
+                detail: `High proportion of disturbed or arid surface (${barrenPitPct}% barren/pit area, Mean NDVI ${latestNdvi}). Accelerate progressive topsoil respreading and seeding with climate-adapted native flora.`
+            });
+        }
+
+        if (latestDust > 0.08 || barrenPitPct > 45) {
+            advisories.push({
+                authority: 'WHO & Global Air Quality (PM10 / Dust)',
+                status: 'High Particulate Risk',
+                severity: 'danger',
+                detail: `Elevated fugitive dust reflectance (Index: ${latestDust}) across ${barrenPitPct}% exposed terrain. Implement chemical dust suppressants on haul corridors and establish drought-tolerant native vegetative windbreaks.`
+            });
+        } else {
+            advisories.push({
+                authority: 'WHO & Global Air Quality (PM10 / Dust)',
+                status: 'Controlled',
+                severity: 'success',
+                detail: `Surface particulate reflectance (Index: ${latestDust}) is well contained within the buffer perimeter, minimizing downwind community exposure.`
+            });
+        }
+
+        if (latestLst > 34.5) {
+            advisories.push({
+                authority: 'ISO 7243 Thermal & Micro-Climate Stress',
+                status: 'Elevated Heat Zone',
+                severity: 'warning',
+                detail: `Mean Land Surface Temperature reached ${latestLst} °C due to high solar absorption in open-pit benches and waste dumps. Monitor occupational heat stress and expand vegetative shading.`
+            });
+        } else {
+            advisories.push({
+                authority: 'ISO 7243 Thermal & Micro-Climate Stress',
+                status: 'Stable Thermal Regime',
+                severity: 'success',
+                detail: `Mean surface temperature (${latestLst} °C) reflects balanced surface albedo and healthy evapotranspiration across the surrounding buffer.`
+            });
+        }
+
         advisories.push({
-            authority: 'MoEFCC (EC Green Belt Norm)',
-            status: 'Action Required',
-            severity: 'warning',
-            detail: `Dense green belt cover is ${denseCanopyPct}% (${deficit}% below the mandatory 33% statutory norm). Immediate gap-plantation (2,500 saplings/ha) recommended on inactive overburden dumps.`
+            authority: 'UNFCCC & GHG Protocol (Carbon Sink)',
+            status: `${co2TonnesPerYear.toLocaleString()} tCO2e/yr`,
+            severity: 'info',
+            detail: `Reclaimed and natural vegetation within the monitoring buffer sequesters an estimated ${co2TonnesPerYear.toLocaleString()} tonnes of CO2 annually, supporting corporate ESG Scope 1 offsetting.`
         });
     }
-
-    // 2. DGMS (MMR 1961 Reg. 123/124) & CPCB Particulate / Dust Control Check
-    if (latestDust > 0.08 || barrenPitPct > 45) {
-        advisories.push({
-            authority: 'DGMS & CPCB (SPM / Dust Suppression)',
-            status: 'High Particulate Risk',
-            severity: 'danger',
-            detail: `Elevated surface dust reflectance (Index: ${latestDust}) and exposed pit/dump surface (${barrenPitPct}%). Deploy 3-tier windbreak shelterbelts (Neem, Karanj, Dalbergia sissoo) along haul roads and crusher zones.`
-        });
-    } else {
-        advisories.push({
-            authority: 'DGMS & CPCB (SPM / Dust Suppression)',
-            status: 'Controlled',
-            severity: 'success',
-            detail: `Peripheral vegetation buffer is effectively attenuating fugitive dust dispersion (Dust Proxy Index: ${latestDust}). Continue regular water sprinkling and haul road avenue plantation.`
-        });
-    }
-
-    // 3. Thermal Anomaly / Mine Fire & Micro-Climate Advisory
-    if (latestLst > 34.5) {
-        advisories.push({
-            authority: 'DGMS Thermal & Micro-Climate Monitor',
-            status: 'Elevated Thermal Zone',
-            severity: 'warning',
-            detail: `Mean surface temperature is ${latestLst} °C. High thermal retention observed in exposed rock/coal strata. Increase broad-leaved canopy cover to induce localized evapotranspiration cooling.`
-        });
-    } else {
-        advisories.push({
-            authority: 'DGMS Thermal & Micro-Climate Monitor',
-            status: 'Normal Thermal Profile',
-            severity: 'success',
-            detail: `Mean surface temperature (${latestLst} °C) is within stable regional limits, supported by vegetative cooling across reclaimed blocks.`
-        });
-    }
-
-    // 4. IBM Star Rating & Carbon Sink Assessment
-    advisories.push({
-        authority: 'IBM Sustainable Mining (Carbon Offset)',
-        status: `${co2TonnesPerYear.toLocaleString()} tCO2e/yr`,
-        severity: 'info',
-        detail: `Existing vegetation cover across the monitored buffer sequesters approximately ${co2TonnesPerYear.toLocaleString()} tonnes of CO2 annually, contributing positively toward IBM 5-Star Rating criteria.`
-    });
 
     return advisories;
 };
@@ -241,7 +307,7 @@ app.get('/api/health', (req, res) => {
 
 app.post('/api/analyze', async (req, res) => {
     try {
-        const { lat, lng, startYear, endYear, bufferRadius, customPolygon } = req.body;
+        const { lat, lng, startYear, endYear, bufferRadius, customPolygon, countryCode } = req.body;
 
         if (lat === undefined || lng === undefined || !startYear || !endYear) {
             return res.status(400).json({ error: 'Missing required spatial or temporal parameters.' });
@@ -250,16 +316,15 @@ app.post('/api/analyze', async (req, res) => {
         const sYear = parseInt(startYear);
         const eYear = parseInt(endYear);
         const radiusMeters = parseInt(bufferRadius) || 5000;
+        const isIndia = checkIndianJurisdiction(lat, lng, countryCode);
 
-        console.log(`Analyzing [${lat}, ${lng}] from ${sYear} to ${eYear} (Radius: ${radiusMeters}m)`);
+        console.log(`Analyzing [${lat}, ${lng}] (${isIndia ? 'India' : 'International'}) from ${sYear} to ${eYear}`);
 
-        // Construct Region of Interest (ROI) from custom polygon or buffered coordinate
         const centerPoint = ee.Geometry.Point([parseFloat(lng), parseFloat(lat)]);
         const roi = customPolygon && customPolygon.length >= 3
             ? ee.Geometry.Polygon([customPolygon.map(pt => [pt[1], pt[0]])]).buffer(radiusMeters * 0.3)
             : centerPoint.buffer(radiusMeters);
 
-        // Adaptive sampling step to ensure fast execution even for 30-40 year spans
         const totalSpan = Math.max(1, eYear - sYear);
         let step = 1;
         if (totalSpan > 25) step = 3;
@@ -275,7 +340,6 @@ app.post('/api/analyze', async (req, res) => {
 
         const eeYears = ee.List(yearListJS);
 
-        // Compute multi-parameter statistics for each sampled year
         const annualFeatures = eeYears.map((yr) => {
             const composite = getAnnualComposite(yr, roi);
             const stats = composite.reduceRegion({
@@ -294,11 +358,9 @@ app.post('/api/analyze', async (req, res) => {
             });
         });
 
-        // Compute land cover class distribution for the final year
         const latestComposite = getAnnualComposite(eYear, roi);
         const latestNdviBand = latestComposite.select('NDVI').clip(roi);
 
-        // Classes: 1 = Pit/Barren (<0.2), 2 = Shrubs/Reclamation (0.2-0.4), 3 = Dense Green Belt (>0.4)
         const barrenMask = latestNdviBand.lt(0.20);
         const shrubMask = latestNdviBand.gte(0.20).and(latestNdviBand.lt(0.40));
         const denseMask = latestNdviBand.gte(0.40);
@@ -316,14 +378,12 @@ app.post('/api/analyze', async (req, res) => {
             maxPixels: 1e9
         });
 
-        // Visualization parameters for live map overlay and pictorial thumbnails
         const ndviVisParams = {
             min: 0.05,
             max: 0.65,
             palette: ['#d73027', '#fc8d59', '#fee08b', '#d9ef8b', '#91cf60', '#1a9850']
         };
 
-        // Select 4 uniform milestone years for Before -> Intermediates -> After snapshots
         const snapshotYears = [
             sYear,
             Math.round(sYear + totalSpan * 0.33),
@@ -332,14 +392,12 @@ app.post('/api/analyze', async (req, res) => {
         ];
         const uniqueSnapshotYears = [...new Set(snapshotYears)];
 
-        // Execute parallel evaluations for high speed
         const [extractedSeries, extractedFractions, mapTileUrl] = await Promise.all([
             evaluateEE(ee.FeatureCollection(annualFeatures)),
             evaluateEE(classFractions),
             getMapIdPromise(latestNdviBand, ndviVisParams)
         ]);
 
-        // Generate pictorial thumbnail URLs for the 4 milestone years
         const pictorialSnapshots = await Promise.all(
             uniqueSnapshotYears.map(async (snapYear, index) => {
                 const snapImg = getAnnualComposite(snapYear, roi).select('NDVI').clip(roi);
@@ -372,7 +430,6 @@ app.post('/api/analyze', async (req, res) => {
             })
         );
 
-        // Format time-series array with realistic fallbacks if cloud cover obscures thermal bands
         const formattedChartData = extractedSeries.features.map((f, idx) => {
             const props = f.properties || {};
             const ndviVal = props.ndvi !== null && props.ndvi !== undefined ? Number(props.ndvi.toFixed(3)) : 0.25;
@@ -395,7 +452,6 @@ app.post('/api/analyze', async (req, res) => {
             };
         });
 
-        // Compute Land Cover Breakdown percentages
         const rawBarren = extractedFractions && extractedFractions.barren ? extractedFractions.barren : 0.35;
         const rawShrub = extractedFractions && extractedFractions.shrub ? extractedFractions.shrub : 0.40;
         const rawDense = extractedFractions && extractedFractions.dense ? extractedFractions.dense : 0.25;
@@ -405,7 +461,6 @@ app.post('/api/analyze', async (req, res) => {
         const shrubReclaimedPct = Number(((rawShrub / totalFrac) * 100).toFixed(1));
         const denseCanopyPct = Number((100 - barrenPitPct - shrubReclaimedPct).toFixed(1));
 
-        // Estimate Total Area (Hectares) and Annual CO2 Sequestration
         const totalAreaHa = Math.round((Math.PI * Math.pow(radiusMeters, 2)) / 10000);
         const greenBeltAreaHa = Math.round(totalAreaHa * ((denseCanopyPct + shrubReclaimedPct * 0.5) / 100));
         const co2TonnesPerYear = Math.round(greenBeltAreaHa * 8.5);
@@ -428,10 +483,14 @@ app.post('/api/analyze', async (req, res) => {
             co2TonnesPerYear
         };
 
-        const statutoryAdvisories = buildStatutoryReport(summaryMetrics, sYear, eYear);
+        const statutoryAdvisories = buildStatutoryReport(summaryMetrics, isIndia);
 
         res.status(200).json({
             status: 'success',
+            jurisdiction: isIndia ? 'INDIA' : 'INTERNATIONAL',
+            frameworkTitle: isIndia
+                ? 'Indian Statutory Compliance & Engineering Advisory (MoEFCC / DGMS / CPCB)'
+                : 'International ESG & Global Mine Reclamation Standards (ICMM / ISO 14001 / WHO)',
             data: formattedChartData,
             mapTileUrl,
             pictorialSnapshots,

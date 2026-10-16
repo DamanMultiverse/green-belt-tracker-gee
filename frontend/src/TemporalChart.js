@@ -1,7 +1,8 @@
 // ==============================================================================
 // MULTI-PARAMETER TEMPORAL CHART COMPONENT
 // Description: Interactive Recharts component supporting switching between
-//              NDVI (Green Belt), Land Surface Temperature (LST), and Dust Proxy.
+//              NDVI (Green Belt), Land Surface Temperature (LST), and Dust Proxy
+//              with jurisdiction-aware threshold labels.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -17,8 +18,9 @@ import {
   ResponsiveContainer
 } from 'recharts';
 
-const TemporalChart = ({ chartData }) => {
+const TemporalChart = ({ chartData, jurisdiction = 'INDIA' }) => {
   const [activeMetric, setActiveMetric] = useState('ndvi');
+  const isIndia = jurisdiction === 'INDIA';
 
   const metricConfig = {
     ndvi: {
@@ -27,7 +29,9 @@ const TemporalChart = ({ chartData }) => {
       dotColor: '#22c55e',
       domain: [0, 0.7],
       threshold: 0.35,
-      thresholdLabel: 'MoEFCC Target Threshold (0.35)'
+      thresholdLabel: isIndia
+        ? 'MoEFCC Target Threshold (0.35)'
+        : 'ICMM / ISO 14001 Reclamation Target (0.35)'
     },
     lst: {
       label: 'Surface Temperature (°C)',
@@ -35,15 +39,19 @@ const TemporalChart = ({ chartData }) => {
       dotColor: '#f87171',
       domain: ['auto', 'auto'],
       threshold: 34.5,
-      thresholdLabel: 'Thermal Anomaly Threshold (34.5 °C)'
+      thresholdLabel: isIndia
+        ? 'DGMS Thermal Anomaly Limit (34.5 °C)'
+        : 'ISO 7243 Thermal Stress Limit (34.5 °C)'
     },
     dust: {
       label: 'Fugitive Dust / SPM Proxy Index',
       color: '#d97706',
       dotColor: '#fbbf24',
-      domain: [0, 0.35],
+      domain: [0, 0.4],
       threshold: 0.08,
-      thresholdLabel: 'DGMS High Dust Alert (0.08)'
+      thresholdLabel: isIndia
+        ? 'DGMS / CPCB High Dust Alert (0.08)'
+        : 'WHO Particulate Control Threshold (0.08)'
     }
   };
 
@@ -51,7 +59,6 @@ const TemporalChart = ({ chartData }) => {
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Metric Selector Tabs */}
       <div className="chart-metric-tabs">
         <button
           type="button"

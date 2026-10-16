@@ -1,8 +1,9 @@
 // ==============================================================================
 // MAIN ENTERPRISE DASHBOARD INTERFACE
 // Description: Multi-sensor (1985-2026) environmental monitoring dashboard with
-//              exact mine polygons, thermal/dust analytics, DGMS/MoEFCC statutory
-//              compliance advisories, and before/after pictorial progression.
+//              exact mine polygons, thermal/dust analytics, jurisdiction-aware
+//              compliance advisories (Indian DGMS/MoEFCC vs. Global ICMM/ISO),
+//              and before/after pictorial progression.
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -10,10 +11,11 @@ import './App.css';
 import SpatialMap from './SpatialMap';
 import TemporalChart from './TemporalChart';
 
-// Directory of major Indian mining regions with demarcated lease boundary polygons
+// Directory of major mining regions (Indian & International) with lease polygons
 const KNOWN_MINES = [
   {
     name: 'Jharia Coalfield, Jharkhand',
+    countryCode: 'in',
     keywords: ['jharia', 'jhariya', 'dhanbad', 'bccl'],
     coords: [23.7500, 86.4100],
     polygon: [
@@ -27,6 +29,7 @@ const KNOWN_MINES = [
   },
   {
     name: 'Korba Coalfield (Gevra), Chhattisgarh',
+    countryCode: 'in',
     keywords: ['korba', 'gevra', 'dipka', 'kusmunda', 'secl'],
     coords: [22.3458, 82.5965],
     polygon: [
@@ -39,6 +42,7 @@ const KNOWN_MINES = [
   },
   {
     name: 'Singrauli Coalfield, MP / UP',
+    countryCode: 'in',
     keywords: ['singrauli', 'singroli', 'nigahi', 'jayant', 'dudhichua', 'ncl'],
     coords: [24.1997, 82.6645],
     polygon: [
@@ -51,6 +55,7 @@ const KNOWN_MINES = [
   },
   {
     name: 'Talcher Coalfield, Odisha',
+    countryCode: 'in',
     keywords: ['talcher', 'talchar', 'angul', 'mcl'],
     coords: [20.9500, 85.2167],
     polygon: [
@@ -63,6 +68,7 @@ const KNOWN_MINES = [
   },
   {
     name: 'Bailadila Iron Ore Mine, Chhattisgarh',
+    countryCode: 'in',
     keywords: ['bailadila', 'kirandul', 'bacheli', 'nmdc', 'dantewada'],
     coords: [18.6288, 81.2339],
     polygon: [
@@ -74,26 +80,24 @@ const KNOWN_MINES = [
     ]
   },
   {
-    name: 'Neyveli Lignite Mine, Tamil Nadu',
-    keywords: ['neyveli', 'nlc', 'cuddalore'],
-    coords: [11.5975, 79.4864],
+    name: 'Mount Whaleback (Newman), Australia',
+    countryCode: 'au',
+    keywords: ['newman', 'whaleback', 'pilbara', 'bhp'],
+    coords: [-23.3638, 119.6638],
     polygon: [
-      [11.638, 79.445],
-      [11.642, 79.525],
-      [11.585, 79.538],
-      [11.552, 79.495],
-      [11.565, 79.442]
+      [-23.345, 119.635],
+      [-23.342, 119.695],
+      [-23.378, 119.702],
+      [-23.385, 119.645]
     ]
   }
 ];
 
-// Generate full historical year options from 1985 to 2026
 const YEAR_OPTIONS = [];
 for (let y = 1985; y <= 2026; y++) {
   YEAR_OPTIONS.push(y);
 }
 
-// Helper function to generate an approximate octagonal boundary around custom coordinates
 const createApproximatePolygon = (lat, lng, radiusMeters) => {
   const latDeg = (radiusMeters * 0.42) / 111320;
   const lngDeg = (radiusMeters * 0.42) / (111320 * Math.cos((lat * Math.PI) / 180));
@@ -126,7 +130,8 @@ function App() {
   const [activeMine, setActiveMine] = useState({
     name: 'Jharia Coalfield, Jharkhand',
     coords: [23.7500, 86.4100],
-    polygon: KNOWN_MINES[0].polygon
+    polygon: KNOWN_MINES[0].polygon,
+    countryCode: 'in'
   });
 
   const [chartData, setChartData] = useState([]);
@@ -134,14 +139,17 @@ function App() {
   const [pictorialSnapshots, setPictorialSnapshots] = useState([]);
   const [landCover, setLandCover] = useState(null);
   const [statutoryAdvisories, setStatutoryAdvisories] = useState([]);
+  const [jurisdiction, setJurisdiction] = useState('INDIA');
+  const [frameworkTitle, setFrameworkTitle] = useState(
+    'Indian Statutory Compliance & Engineering Advisory (MoEFCC / DGMS / CPCB)'
+  );
 
   const [statusMessage, setStatusMessage] = useState(
     'Ready for multi-sensor spatial analysis (1985-2026). Select any mine or timeframe and click "Analyze Region".'
   );
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch multi-parameter satellite data from the Node.js GEE Backend
-  const fetchRealData = async (lat, lng, name, sYear, eYear, radius, polygonCoords) => {
+  const fetchRealData = async (lat, lng, name, sYear, eYear, radius, polygonCoords, countryCode = null) => {
     if (Number(sYear) >= Number(eYear)) {
       setStatusMessage('Validation Error: Start Year must be earlier than End Year.');
       return;
@@ -162,7 +170,8 @@ function App() {
           startYear: sYear,
           endYear: eYear,
           bufferRadius: radius,
-          customPolygon: polygonCoords
+          customPolygon: polygonCoords,
+          countryCode
         })
       });
 
@@ -174,8 +183,18 @@ function App() {
         setPictorialSnapshots(result.pictorialSnapshots || []);
         setLandCover(result.landCover || null);
         setStatutoryAdvisories(result.statutoryAdvisories || []);
+        setJurisdiction(result.jurisdiction || 'INDIA');
+        if (result.frameworkTitle) {
+          setFrameworkTitle(result.frameworkTitle);
+        }
+
+        const badgeText =
+          result.jurisdiction === 'INDIA'
+            ? 'DGMS/MoEFCC statutory metrics'
+            : 'International ICMM/ISO 14001 ESG metrics';
+
         setStatusMessage(
-          `Analysis complete for ${name} (${sYear}-${eYear}). Multi-sensor data and DGMS/MoEFCC compliance metrics updated.`
+          `Analysis complete for ${name} (${sYear}-${eYear}). Multi-sensor data and ${badgeText} updated.`
         );
       } else {
         setStatusMessage('Server Error: Failed to process spatial analysis request.');
@@ -189,7 +208,6 @@ function App() {
     setIsLoading(false);
   };
 
-  // Handle form submission for both Mine Name and Coordinate modes
   const handleAnalyze = async (e) => {
     e.preventDefault();
 
@@ -203,15 +221,14 @@ function App() {
 
       const customName = `Custom Mine Site (${parsedLat.toFixed(3)}, ${parsedLng.toFixed(3)})`;
       const approxPoly = createApproximatePolygon(parsedLat, parsedLng, bufferRadius);
-      setActiveMine({ name: customName, coords: [parsedLat, parsedLng], polygon: approxPoly });
-      fetchRealData(parsedLat, parsedLng, customName, startYear, endYear, bufferRadius, approxPoly);
+      setActiveMine({ name: customName, coords: [parsedLat, parsedLng], polygon: approxPoly, countryCode: null });
+      fetchRealData(parsedLat, parsedLng, customName, startYear, endYear, bufferRadius, approxPoly, null);
       return;
     }
 
     const cleanedQuery = searchQuery.trim().toLowerCase();
     if (!cleanedQuery) return;
 
-    // 1. Check built-in mining directory with fuzzy keyword matching
     const matchedMine = KNOWN_MINES.find(
       (m) =>
         m.name.toLowerCase().includes(cleanedQuery) ||
@@ -222,7 +239,8 @@ function App() {
       setActiveMine({
         name: matchedMine.name,
         coords: matchedMine.coords,
-        polygon: matchedMine.polygon
+        polygon: matchedMine.polygon,
+        countryCode: matchedMine.countryCode
       });
       setLatInput(String(matchedMine.coords[0]));
       setLngInput(String(matchedMine.coords[1]));
@@ -233,16 +251,16 @@ function App() {
         startYear,
         endYear,
         bufferRadius,
-        matchedMine.polygon
+        matchedMine.polygon,
+        matchedMine.countryCode
       );
       return;
     }
 
-    // 2. Fallback: Query OpenStreetMap Nominatim with GeoJSON polygon extraction
     try {
       setStatusMessage(`Searching global spatial directory for "${searchQuery}"...`);
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(
           searchQuery
         )}&limit=1&polygon_geojson=1`
       );
@@ -252,11 +270,14 @@ function App() {
         const foundLat = parseFloat(results[0].lat);
         const foundLng = parseFloat(results[0].lon);
         const displayName = results[0].display_name.split(',').slice(0, 2).join(', ');
+        const detectedCountry =
+          results[0].address && results[0].address.country_code
+            ? results[0].address.country_code
+            : null;
 
         let extractedPoly = null;
         const geojson = results[0].geojson;
         if (geojson && geojson.type === 'Polygon' && geojson.coordinates && geojson.coordinates[0]) {
-          // Convert [lng, lat] to Leaflet [lat, lng] and simplify vertices
           const rawRing = geojson.coordinates[0];
           const step = Math.max(1, Math.floor(rawRing.length / 25));
           extractedPoly = rawRing
@@ -266,10 +287,24 @@ function App() {
           extractedPoly = createApproximatePolygon(foundLat, foundLng, bufferRadius);
         }
 
-        setActiveMine({ name: displayName, coords: [foundLat, foundLng], polygon: extractedPoly });
+        setActiveMine({
+          name: displayName,
+          coords: [foundLat, foundLng],
+          polygon: extractedPoly,
+          countryCode: detectedCountry
+        });
         setLatInput(foundLat.toFixed(4));
         setLngInput(foundLng.toFixed(4));
-        fetchRealData(foundLat, foundLng, displayName, startYear, endYear, bufferRadius, extractedPoly);
+        fetchRealData(
+          foundLat,
+          foundLng,
+          displayName,
+          startYear,
+          endYear,
+          bufferRadius,
+          extractedPoly,
+          detectedCountry
+        );
       } else {
         setStatusMessage(`Could not find a match for "${searchQuery}". Try entering coordinates or clicking on the map.`);
       }
@@ -278,17 +313,29 @@ function App() {
     }
   };
 
-  // Quick-select preset chip handler
   const handlePresetSelect = (mine) => {
     setSearchMode('name');
     setSearchQuery(mine.name);
     setLatInput(String(mine.coords[0]));
     setLngInput(String(mine.coords[1]));
-    setActiveMine({ name: mine.name, coords: mine.coords, polygon: mine.polygon });
-    fetchRealData(mine.coords[0], mine.coords[1], mine.name, startYear, endYear, bufferRadius, mine.polygon);
+    setActiveMine({
+      name: mine.name,
+      coords: mine.coords,
+      polygon: mine.polygon,
+      countryCode: mine.countryCode
+    });
+    fetchRealData(
+      mine.coords[0],
+      mine.coords[1],
+      mine.name,
+      startYear,
+      endYear,
+      bufferRadius,
+      mine.polygon,
+      mine.countryCode
+    );
   };
 
-  // Interactive map click handler
   const handleMapClick = (lat, lng) => {
     const formattedLat = Number(lat.toFixed(4));
     const formattedLng = Number(lng.toFixed(4));
@@ -298,11 +345,10 @@ function App() {
 
     const clickedName = `Selected Site (${formattedLat}, ${formattedLng})`;
     const approxPoly = createApproximatePolygon(formattedLat, formattedLng, bufferRadius);
-    setActiveMine({ name: clickedName, coords: [formattedLat, formattedLng], polygon: approxPoly });
-    fetchRealData(formattedLat, formattedLng, clickedName, startYear, endYear, bufferRadius, approxPoly);
+    setActiveMine({ name: clickedName, coords: [formattedLat, formattedLng], polygon: approxPoly, countryCode: null });
+    fetchRealData(formattedLat, formattedLng, clickedName, startYear, endYear, bufferRadius, approxPoly, null);
   };
 
-  // Export time-series data as CSV for statutory reporting
   const handleExportCSV = () => {
     if (!chartData || chartData.length === 0) return;
     const headers = ['Year,Mean_NDVI,Surface_Temp_C,Dust_Proxy_Index,Water_Index_NDWI'];
@@ -319,7 +365,6 @@ function App() {
     document.body.removeChild(link);
   };
 
-  // Compute executive KPI values
   const latestRecord = chartData.length > 0 ? chartData[chartData.length - 1] : null;
   const initialRecord = chartData.length > 0 ? chartData[0] : null;
   const latestNdvi = latestRecord ? latestRecord.ndvi : 0;
@@ -329,7 +374,6 @@ function App() {
 
   return (
     <div className="dashboard-container">
-      {/* Top Enterprise Header */}
       <header className="dashboard-header">
         <div className="header-title">
           <h1>Satellite-Based Green Belt & Mine Environment Tracker</h1>
@@ -350,7 +394,6 @@ function App() {
         </div>
       </header>
 
-      {/* Search & Parameter Control Bar */}
       <form className="control-bar" onSubmit={handleAnalyze}>
         <div className="search-mode-toggle">
           <button
@@ -371,10 +414,10 @@ function App() {
 
         {searchMode === 'name' ? (
           <div className="input-group" style={{ flex: 2 }}>
-            <label>Search Mine or Coalfield Name</label>
+            <label>Search Mine or Coalfield Name (Global)</label>
             <input
               type="text"
-              placeholder="e.g., Jharia, Korba, Singrauli, Talcher, Bailadila..."
+              placeholder="e.g., Jharia, Korba, Singrauli, Mount Whaleback..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -458,10 +501,8 @@ function App() {
         </div>
       </form>
 
-      {/* Status Notification Banner */}
       <div className="status-banner">{statusMessage}</div>
 
-      {/* 5-Card Executive Environmental KPI Row */}
       <section className="kpi-row">
         <div className="kpi-card">
           <div className="kpi-label">Latest Mean NDVI ({endYear})</div>
@@ -509,7 +550,6 @@ function App() {
         </div>
       </section>
 
-      {/* Primary Spatial & Temporal Analytical Grid */}
       <main className="dashboard-content">
         <section className="panel">
           <div className="panel-header">
@@ -537,7 +577,7 @@ function App() {
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             {chartData.length > 0 ? (
-              <TemporalChart chartData={chartData} />
+              <TemporalChart chartData={chartData} jurisdiction={jurisdiction} />
             ) : (
               <div className="placeholder-box">
                 {isLoading
@@ -549,7 +589,6 @@ function App() {
         </section>
       </main>
 
-      {/* Secondary Row: Land Cover Breakdown & Indian Statutory Compliance Engine */}
       {landCover && (
         <section className="secondary-grid">
           <div className="land-cover-card">
@@ -602,8 +641,10 @@ function App() {
 
           <div className="statutory-card">
             <div className="panel-header">
-              <h2>Indian Statutory Compliance & Engineering Advisory (MoEFCC / DGMS / CPCB)</h2>
-              <span className="coord-tag">Automated Rule Assessment</span>
+              <h2>{frameworkTitle}</h2>
+              <span className="coord-tag">
+                {jurisdiction === 'INDIA' ? 'Jurisdiction: India' : 'Jurisdiction: International ESG'}
+              </span>
             </div>
 
             <div className="advisory-list">
@@ -621,7 +662,6 @@ function App() {
         </section>
       )}
 
-      {/* Bottom Full-Width Section: Pictorial Before -> Intermediates -> After Snapshots */}
       {pictorialSnapshots.length > 0 && (
         <section className="pictorial-section">
           <div className="panel-header">
