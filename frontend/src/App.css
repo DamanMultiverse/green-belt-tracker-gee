@@ -1,6 +1,7 @@
 /* ==============================================================================
-   ENTERPRISE DASHBOARD STYLING
-   Description: Stylesheet for layout, control bar, KPI cards, and analytical panels
+   ENTERPRISE ENVIRONMENTAL & STATUTORY DASHBOARD STYLESHEET
+   Description: Responsive layout supporting multi-sensor maps, land-cover bars,
+                statutory compliance advisories, and pictorial before/after grids.
    ============================================================================== */
 
 * {
@@ -11,14 +12,17 @@
 }
 
 body {
-  background-color: #f0f4f8;
+  background-color: #f1f5f9;
   color: #1e293b;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .dashboard-container {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  padding-bottom: 3rem;
 }
 
 /* Header Styling */
@@ -29,6 +33,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
@@ -44,13 +50,36 @@ body {
   margin-top: 0.2rem;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 .header-badge {
   background-color: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.25);
   padding: 0.4rem 0.9rem;
   border-radius: 20px;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: #e2e8f0;
+}
+
+.export-btn {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.45rem 0.95rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.export-btn:hover {
+  background-color: #2563eb;
 }
 
 /* Search & Control Bar */
@@ -64,7 +93,6 @@ body {
   flex-wrap: wrap;
   gap: 1rem;
   align-items: flex-end;
-  justify-content: space-between;
 }
 
 .search-mode-toggle {
@@ -97,11 +125,11 @@ body {
   flex-direction: column;
   gap: 0.35rem;
   flex: 1;
-  min-width: 180px;
+  min-width: 140px;
 }
 
 .input-group label {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: #475569;
   text-transform: uppercase;
@@ -110,12 +138,11 @@ body {
 
 .input-group input,
 .input-group select {
-  padding: 0.6rem 0.85rem;
+  padding: 0.6rem 0.8rem;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   outline: none;
-  transition: border-color 0.2s;
 }
 
 .input-group input:focus,
@@ -127,6 +154,7 @@ body {
   display: flex;
   gap: 0.75rem;
   flex: 2;
+  min-width: 260px;
 }
 
 .analyze-btn {
@@ -150,7 +178,8 @@ body {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   padding-top: 0.6rem;
   border-top: 1px solid #f1f5f9;
   font-size: 0.8rem;
@@ -160,12 +189,12 @@ body {
 .preset-chip {
   background: #e2e8f0;
   border: none;
-  padding: 0.25rem 0.7rem;
+  padding: 0.28rem 0.75rem;
   border-radius: 14px;
   font-size: 0.78rem;
   color: #334155;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
   transition: all 0.15s;
 }
 
@@ -176,25 +205,26 @@ body {
 
 .status-banner {
   margin: 0.8rem 2rem 0 2rem;
-  padding: 0.6rem 1rem;
+  padding: 0.65rem 1rem;
   background-color: #eff6ff;
   border-left: 4px solid #2563eb;
   border-radius: 4px;
   font-size: 0.85rem;
   color: #1e40af;
+  font-weight: 500;
 }
 
-/* KPI Summary Row */
+/* 5-Card KPI Summary Row */
 .kpi-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.2rem;
-  margin: 1.2rem 2rem 0 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1rem 2rem 0 2rem;
 }
 
 .kpi-card {
   background: white;
-  padding: 1rem 1.4rem;
+  padding: 1rem 1.25rem;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
   border-left: 4px solid #16a34a;
@@ -204,33 +234,44 @@ body {
   border-left-color: #eab308;
 }
 
+.kpi-card.thermal {
+  border-left-color: #ef4444;
+}
+
+.kpi-card.dust {
+  border-left-color: #f59e0b;
+}
+
+.kpi-card.carbon {
+  border-left-color: #0ea5e9;
+}
+
 .kpi-label {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
   color: #64748b;
   font-weight: 700;
 }
 
 .kpi-value {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   font-weight: 800;
   color: #0f172a;
   margin-top: 0.25rem;
 }
 
 .kpi-subtext {
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   color: #64748b;
   margin-top: 0.2rem;
 }
 
 /* Main Analytical Content Grid */
 .dashboard-content {
-  display: flex;
-  flex: 1;
-  padding: 1.2rem 2rem 2rem 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+  padding: 1.2rem 2rem 0 2rem;
   gap: 1.5rem;
-  min-height: 460px;
 }
 
 .panel {
@@ -238,30 +279,352 @@ body {
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
   padding: 1.25rem 1.5rem;
-  flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 470px;
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   border-bottom: 2px solid #f1f5f9;
   padding-bottom: 0.75rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.85rem;
 }
 
 .panel-header h2 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   color: #0f172a;
 }
 
 .coord-tag {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   background: #f1f5f9;
   color: #475569;
   padding: 0.25rem 0.6rem;
   border-radius: 4px;
   font-family: monospace;
+}
+
+/* Map Controls & Legend */
+.map-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.5rem;
+}
+
+.map-layer-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  background: #f8fafc;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.layer-toggle-group {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.map-ctrl-btn {
+  border: 1px solid #cbd5e1;
+  background: white;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #475569;
+}
+
+.map-ctrl-btn.active {
+  background: #1e3a8a;
+  color: white;
+  border-color: #1e3a8a;
+}
+
+.gee-overlay-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #15803d;
+}
+
+.overlay-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+}
+
+.opacity-slider {
+  width: 75px;
+  cursor: pointer;
+}
+
+.map-legend-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  padding: 0.4rem 0.6rem;
+  background: #f8fafc;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: #334155;
+  align-items: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.legend-Swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.legend-border-red {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #ef4444;
+  display: inline-block;
+}
+
+/* Chart Metric Tabs */
+.chart-metric-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.metric-tab-btn {
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+}
+
+.metric-tab-btn.active-ndvi {
+  background: #15803d;
+  color: white;
+  border-color: #15803d;
+}
+
+.metric-tab-btn.active-lst {
+  background: #dc2626;
+  color: white;
+  border-color: #dc2626;
+}
+
+.metric-tab-btn.active-dust {
+  background: #d97706;
+  color: white;
+  border-color: #d97706;
+}
+
+/* Land Cover Distribution & Statutory Compliance Grid */
+.secondary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 1.5rem;
+  margin: 1.5rem 2rem 0 2rem;
+}
+
+.land-cover-card,
+.statutory-card,
+.pictorial-section {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  padding: 1.25rem 1.5rem;
+}
+
+.land-bar-group {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.land-bar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.land-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.progress-track {
+  width: 100%;
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 6px;
+}
+
+.advisory-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.advisory-item {
+  padding: 0.85rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  border-left: 4px solid #16a34a;
+}
+
+.advisory-item.warning {
+  border-left-color: #eab308;
+  background: #fefce8;
+}
+
+.advisory-item.danger {
+  border-left-color: #ef4444;
+  background: #fef2f2;
+}
+
+.advisory-item.info {
+  border-left-color: #0ea5e9;
+  background: #f0f9ff;
+}
+
+.advisory-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.advisory-badge {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.07);
+}
+
+.advisory-detail {
+  font-size: 0.78rem;
+  color: #334155;
+  line-height: 1.4;
+}
+
+/* Pictorial Before -> Intermediates -> After Timeline */
+.pictorial-section {
+  margin: 1.5rem 2rem 0 2rem;
+}
+
+.snapshots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.snapshot-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+}
+
+.snapshot-img-box {
+  width: 100%;
+  height: 200px;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.snapshot-img-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.snapshot-info {
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.snapshot-stage {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.snapshot-year {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.snapshot-ndvi-pill {
+  background: #dcfce7;
+  color: #15803d;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.placeholder-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #64748b;
+  font-weight: 600;
+  padding: 2rem;
+  text-align: center;
+}
+
+@media (max-width: 960px) {
+  .secondary-grid,
+  .dashboard-content {
+    grid-template-columns: 1fr;
+  }
 }
