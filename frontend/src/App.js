@@ -313,27 +313,11 @@ function App() {
     }
   };
 
-  const handlePresetSelect = (mine) => {
+ const handlePresetSelect = (mine) => {
     setSearchMode('name');
     setSearchQuery(mine.name);
     setLatInput(String(mine.coords[0]));
     setLngInput(String(mine.coords[1]));
-    setActiveMine({
-      name: mine.name,
-      coords: mine.coords,
-      polygon: mine.polygon,
-      countryCode: mine.countryCode
-    });
-    fetchRealData(
-      mine.coords[0],
-      mine.coords[1],
-      mine.name,
-      startYear,
-      endYear,
-      bufferRadius,
-      mine.polygon,
-      mine.countryCode
-    );
   };
 
   const handleMapClick = (lat, lng) => {
@@ -342,11 +326,6 @@ function App() {
     setLatInput(String(formattedLat));
     setLngInput(String(formattedLng));
     setSearchMode('coords');
-
-    const clickedName = `Selected Site (${formattedLat}, ${formattedLng})`;
-    const approxPoly = createApproximatePolygon(formattedLat, formattedLng, bufferRadius);
-    setActiveMine({ name: clickedName, coords: [formattedLat, formattedLng], polygon: approxPoly, countryCode: null });
-    fetchRealData(formattedLat, formattedLng, clickedName, startYear, endYear, bufferRadius, approxPoly, null);
   };
 
   const handleExportCSV = () => {
